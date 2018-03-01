@@ -1,5 +1,7 @@
-# TCP-NTCP-dose_var_model
-Python code used to model the variation in TCP and NTCP with dose fraction specific dose variations
+# TCP/NTCP Radiobiological model
+Python code used to model the variation in TCP and NTCP with dose fraction specific dose variations.
+There is huge flexibility in variaiton of the delivered dose per fraction.
+Doses cna be generated within the model (as used heavily within the thesis) or can be supplied as a list of doses (which must be done for the NTCP model (a list of doses can easily be gneerated from the TCP model and then supplied for NTCP calcualtions).
 
 ## Example usage
 This example generates a set of TCP reuslts for 1000 patients and then plots the individual results and the population mean.
