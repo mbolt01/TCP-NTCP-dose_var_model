@@ -1,13 +1,13 @@
 # TCP/NTCP Radiobiological model
 Python code used to model the variation in TCP and NTCP with dose fraction specific dose variations.
-There is huge flexibility in variaiton of the delivered dose per fraction.
-Doses cna be generated within the model (as used heavily within the thesis) or can be supplied as a list of doses (which must be done for the NTCP model (a list of doses can easily be gneerated from the TCP model and then supplied for NTCP calcualtions).
+There is huge flexibility in variation of the delivered dose per fraction.
+Doses can be generated within the model (as used heavily within the thesis) or can be supplied as a list of doses (which must be done for the NTCP model; a list of doses can easily be gneerated from the TCP model and then supplied for NTCP calcualtions).
 
 ## Example usage
 This example generates a set of TCP reuslts for 1000 patients and then plots the individual results and the population mean.
-There are 1000 patients with alpha/beta mean of 10 and stnadard deviation of 20%.
+There are 1000 patients with alpha/beta mean of 10 and standard deviation of 20% of the mean.
 Nominal dose is 2Gy/#. There is no offset of dose from the mean, but delivered dose per fraction has a standard deviation of 1.5%.
-A 5% drift in bema output per year is included and specific results are returned at 74Gy.
+A 5% drift in beam output per year is included and specific results are returned at 74Gy.
 Usage of the NTCP model is similar.
 
 ```python
