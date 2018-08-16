@@ -200,7 +200,7 @@ def n0_determination(TCP_input,
         print('Number of repeats for fitting N0 has been set to the minimum reccomended value of ' + str(repeats_min))
     else:
         repeats = repeats
-    n=100 # set value of n for reliable fitting # use 100 for final results?
+    n=n#100 # set value of n for reliable fitting # use 1000 for final results?
     n0=n0
     alphabeta_use=alphabeta_use
     alphabeta_sd_use=alphabeta_sd_use
@@ -244,7 +244,7 @@ def n0_determination(TCP_input,
     fit_results.sort() # sort the repeated results to eliminate outliers
     #print(fit_results)
     #print(np.mean(fit_results))
-    num_outliers = 1
+    num_outliers = 0 #1 **************************** set this.
     if num_outliers==0:
         fit_results_trim = fit_results
     else:
