@@ -91,14 +91,17 @@ def alphacalc_normal(alphabeta, sd):
 
 ### Alpha beta calculator - log normal dist
 
-def alphacalc_lognormal(alphabeta, sd_perc):
+def alphacalc_lognormal(alphabeta, sd_perc,set_beta=None):
     """Return alphabetanew and alpha from normal distribution as specified by sd.
     Default is beta = 0.03
     'alphabeta' is the alphabeta ratio mean
     sd supplied as percentage
     """
-    
-    beta = 0.02 # fixed beta in function
+    if set_beta==None:
+        beta = 0.03 # fixed beta in function
+    else:
+        beta = set_beta
+        #print('beta was set to:',beta)
     
     ## convert sd from percentage to absolute
     sd = alphabeta*sd_perc/100
@@ -157,7 +160,60 @@ def calc_dif_sq(x,TCP, n, alphabeta_use, alphabeta_sd_use,d,d_shift,d_sd,d_trend
         #print(TCP_Dif_sq_sum)
     return TCP_Dif_sq_sum
 
+#%%
 
+## function to calculate the difference between input TCP and calculated TCP. only N0 is varied as want to estimate this.
+def calc_dif_sq_ab_sd(x,
+                      TCP,
+                      n,
+                      alphabeta_use,
+                      d,
+                      d_shift,
+                      d_sd,
+                      d_trend,
+                      n0,
+                      max_d,
+                      dose_of_interest,
+                      dose_input,
+                      TCP_input,
+                      weights_input=None,
+                      set_beta=None):
+    
+    ## tcp/dose_input must be provided as a list or this will not work (even if single valued).
+    
+    if weights_input == None:
+        weights = [1]*len(TCP_input)
+    else:
+        weights = weights_input
+    #print(weights)    
+    
+    TCP_in = TCP_input
+    #print(len(TCP_input))
+    #print('tcp input',TCP_input)
+    
+    TCP_Dif_sq_sum = 0
+    for i in range(len(TCP_input)):
+        #print('TCP list val: ' + str(i))
+        TCP_calc_all = completeTCPcalc(n=n,
+                                   alphabeta_use=alphabeta_use,
+                                   alphabeta_sd_use=x,# this needs to be able to vary to allow optimisation of the value
+                                   d=d,
+                                   d_shift=d_shift,
+                                   d_sd=d_sd,
+                                   d_trend=d_trend,
+                                   n0=n0, 
+                                   max_d=max_d,
+                                   dose_of_interest=dose_input[i],
+                                   dose_input=dose_input[i],
+                                   TCP_input=TCP_input[i],
+                                   set_beta=set_beta)
+        TCP_result = TCP_calc_all['TCP_cure_percent'] ## Get only the result of interest (TCP at d_int is in posn. 10 in the returned tuple)
+        #print(weights[i]/sum(weights))   
+        #print(TCP_in,TCP_result)
+        TCP_Dif_sq = (weights[i]/sum(weights))*((TCP_in[i] - TCP_result)**2) ## difference in squares to minimise
+        TCP_Dif_sq_sum = TCP_Dif_sq_sum + TCP_Dif_sq
+        #print('dif sqare',TCP_Dif_sq_sum)
+    return TCP_Dif_sq_sum
 
 #%%
 
@@ -257,6 +313,81 @@ def n0_determination(TCP_input,
     
     return n0_mean_fit#, TCP_Calc_min[10]
 
+    
+#%%
+
+## fit a/b SD instead of N0. Leave both as an option in the model? i.e. if specify a/b fit then do this, if not can still do N0 fit.
+def ab_sd_determination(TCP_input,
+                         n,
+                         alphabeta_use,
+                         d,
+                         d_shift,
+                         d_sd,
+                         d_trend,
+                         max_d,
+                         dose_of_interest,
+                         dose_input,
+                         n0,
+                         weights_input = None,
+                         set_beta=None,
+                         ab_n=None):
+    
+    
+    #n=1000#100 # set value of n for reliable fitting # use 1000 for final results?
+    if ab_n==None:
+        n=1000 ## default n for fitting
+    else:
+        n=ab_n
+    print('ab_n set to:',n)
+    n0=n0
+    alphabeta_use=alphabeta_use
+    d=d
+    d_shift=d_shift
+    d_sd=d_sd
+    d_trend=d_trend
+    max_d=max_d
+    dose_of_interest=dose_of_interest
+    TCP_input = TCP_input
+    dose_input = dose_input
+    set_beta=set_beta
+    #print('tcp_input',TCP_input)
+    #TCP, n, alphabeta_use, alphabeta_sd_use,d,d_shift,d_sd,max_d,dose_of_interest
+    
+### This is minimising the difference of squares returned by the function.
+### This could probably be made to return the value if multiple TCP/Dose points are passed to it?
+        
+    print('Fitting a/b SD value...')
+    
+    ab_sd_result = opt.minimize_scalar(calc_dif_sq_ab_sd,method='Bounded', #'brent'
+                                       bounds=(0,100),
+                                    args=(TCP_input,
+                                    n,
+                                    alphabeta_use,
+                                    d,
+                                    d_shift,
+                                    d_sd,
+                                    d_trend,
+                                    n0,
+                                    max_d,
+                                    dose_of_interest,
+                                    dose_input,
+                                    TCP_input,
+                                    weights_input,
+                                    set_beta))
+
+    
+    #print('ab sd fit:',ab_sd_result)
+   # print('')
+    print('Fitting Completed')
+    
+    ab_sd_result_perc = ab_sd_result.x
+    #print(ab_sd_result_perc)
+    
+    return ab_sd_result_perc
+    ## need to optimise the dif in squares of the TCP at point of interest as for N0.
+    ## but now set a/bSD as the parameter to optimise...
+    ## return the ab_sd_mean_fit
+    
 
 # In[9]:
 
@@ -346,12 +477,12 @@ def create_patients(n):
 
 ## empty array to store alpha values in (log normal distribution to be used)
 
-def create_alpha_beta_array(n, alphabeta_use, alphabeta_sd_use):
+def create_alpha_beta_array(n, alphabeta_use, alphabeta_sd_use,set_beta=None):
     alpha_and_beta =[]
 
     for p in range(0,n):
         #alpha_and_beta = np.append(alpha_and_beta,[alphacalc_normal(alphabeta = alphabeta_use, sd=alphabeta_sd_use)])
-        alpha_and_beta.append([alphacalc_lognormal(alphabeta = alphabeta_use, sd_perc=alphabeta_sd_use)])
+        alpha_and_beta.append([alphacalc_lognormal(alphabeta = alphabeta_use, sd_perc=alphabeta_sd_use,set_beta=set_beta)])
 
     ## reshape to get a row per patient
     alpha_and_beta_np = np.array(alpha_and_beta)
@@ -454,7 +585,11 @@ def completeTCPcalc(n,
                    d_list=None,
                    n0=None,
                    repeats = None,
-                   weights_input=None):
+                   weights_input=None,
+                   set_beta=None,
+                   ab_n=None):
+    
+    #print('tcp input',TCP_input)
 
     fractions, nom_doses, n_frac = no_frac_nom_doses_array(max_d,d)
 
@@ -474,8 +609,33 @@ def completeTCPcalc(n,
     patients = create_patients(n)
     #print(patients)
     
-    ## Creat array of alpha and veta values for each patient
-    alpha_and_beta = create_alpha_beta_array(n, alphabeta_use, alphabeta_sd_use)
+    
+    ## need to determine ab_sd prior to creating array.
+    tcp_ab_fit = None
+    if alphabeta_sd_use=='fit':
+        alphabeta_sd_use_fit = ab_sd_determination([100*i for i in TCP_input],
+                                              n,
+                                              alphabeta_use,
+                                              d,
+                                              d_shift,
+                                              d_sd,
+                                              d_trend,
+                                              max_d,
+                                              dose_of_interest,
+                                              dose_input,
+                                              n0,
+                                              weights_input,
+                                              set_beta,
+                                              ab_n)
+        tcp_ab_fit = True
+        #print('AB SD fitted: ',alphabeta_sd_use)
+    else:
+        alphabeta_sd_use_fit=alphabeta_sd_use
+        tcp_ab_fit = False
+    
+    #print('AB SD fitted: ',alphabeta_sd_use_fit)
+    ## Creat array of alpha and beta values for each patient
+    alpha_and_beta = create_alpha_beta_array(n, alphabeta_use, alphabeta_sd_use_fit,set_beta)
     
     ## put all results in an array with a patient on each row
     all_results = combine_results(patients, alpha_and_beta, doses)
@@ -531,6 +691,7 @@ def completeTCPcalc(n,
     return {'n':n,
             'alphabeta_use':alphabeta_use,
             'alphabeta_sd_use':alphabeta_sd_use,
+            'alphabeta_sd_use_fit':alphabeta_sd_use_fit,
             'd':d,
             'd_shift':d_shift,
             'd_sd':d_sd,
@@ -550,6 +711,8 @@ def completeTCPcalc(n,
             'n0':n0,
             'weights_input':weights_input,
             'tcp_fit':tpc_fit,
+            'tcp_ab_fit':tcp_ab_fit,
+            'alpha_and_beta':alpha_and_beta
             }
 
 
@@ -1169,7 +1332,8 @@ def complete_NTCP_calc(d_data=None,
                        initial_params_ntcp=None,
                        max_dose=100,
                        ntcp_params=None,
-                       fit_vals = True
+                       fit_vals = True,
+                       confirmation=False
                        ):
     
     if initial_params_ntcp==None: ## 
@@ -1243,7 +1407,7 @@ def complete_NTCP_calc(d_data=None,
         
         ## if SD is set to zero then cannot get from normal distribution, so set explicitely
         ## need to limit these values to between their set limits ([0,1] etc...)
-        print("Calculating Individual Patient NTCP curves")
+        #print("Calculating Individual Patient NTCP curves")
         if ntcp_params['td50_1'][1] == 0:
             td50_1_use = np.full(len(cum_doses),pop_fit[0],dtype=float)
         else:
@@ -1282,9 +1446,10 @@ def complete_NTCP_calc(d_data=None,
             patient_ntcps.append(ntcp_patient_calc(cum_doses[i], td50_1_use[i], v_use[i], m_use[i], n_use[i]))
         patient_ntcps = np.array(patient_ntcps)
     else:
-        print('Fractoin doses should be supplied in format: 1 row for each patient, with each column containing dose/# for that patient')
+        print('Fraction doses should be supplied in format: 1 row for each patient, with each column containing dose/# for that patient')
     
-    print('*** NTCP Simulation Completed ***')
+    if confirmation==True:    
+        print('*** NTCP Simulation Completed ***')
             
     return {'pop_fit': pop_fit,
             'fit_x':fit_x,
