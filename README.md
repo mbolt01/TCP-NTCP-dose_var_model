@@ -38,7 +38,6 @@ for i in range(100):
 # plot population mean
 plt.plot(results['nom_doses'],results['TCP_pop'],ls='-',c='C0',marker='o',ms=3)
 plt.show()
-```
 
 # Generate set of NTCP results
 
@@ -52,3 +51,4 @@ ntcp_results = model.complete_NTCP_calc(d_data=[64,74],             # dose value
                                                     'm':(0.53,0),   # m paremter in NTCP equation (may have ot be found through optimisation
                                                     'n':(1,0)},     # n parameter in NTCP equation
                                        fit_vals=False)['patient_ntcps'] #[0][29] ## this will reuturn the NTCP after 30#
+```
