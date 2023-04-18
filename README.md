@@ -16,7 +16,7 @@ import TCP_NTCP as model
 import matplotlib.pyplot as plt
 
 
-# Generate a set of results
+# Generate a set TCP of results
 results = model.completeTCPcalc(n=1000,                     # number of patients in population to model
                                 alphabeta_use=10,           # mean alpha/beta
                                 alphabeta_sd_use=20,        # SD of alpha/beta (%)
@@ -39,3 +39,16 @@ for i in range(100):
 plt.plot(results['nom_doses'],results['TCP_pop'],ls='-',c='C0',marker='o',ms=3)
 plt.show()
 ```
+
+# Generate set of NTCP results
+
+ntcp_results = model.complete_NTCP_calc(d_data=[64,74],             # dose values on NTCP curve
+                                       ntcp_data=[0.36,0.47],       # NTCP values corresponding to the above doses
+                                       irrad_perc = 100,            # scaling factor
+                                       frac_doses=all_d_array,      # this will be a list of dose values to compute the NTCP for
+                                       max_dose=100,                # maximum calculation dose
+                                       ntcp_params={'td50_1':(31.4,0),
+                                                    'v': (0.72,0), ## v=1 for parotid (e.g. low for rectum (0.08,10))
+                                                    'm':(0.53,0),   # m paremter in NTCP equation (may have ot be found through optimisation
+                                                    'n':(1,0)},     # n parameter in NTCP equation
+                                       fit_vals=False)['patient_ntcps'] #[0][29] ## this will reuturn the NTCP after 30#
